@@ -278,6 +278,6 @@ Build agents, XCode setup:
 - [https://github.com/Microsoft/vsts-agent/blob/master/README.md](https://github.com/Microsoft/vsts-agent/blob/master/README.md)
 - [https://www.visualstudio.com/en-us/docs/build/admin/agents/v2-osx](https://www.visualstudio.com/en-us/docs/build/admin/agents/v2-osx)
 - [https://www.visualstudio.com/en-us/docs/setup-admin/team-services/use-personal-access-tokens-to-authenticate](https://www.visualstudio.com/en-us/docs/setup-admin/team-services/use-personal-access-tokens-to-authenticate)
-- [https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios](https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios)
+- [https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios](https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios) 
 
 
