@@ -140,3 +140,144 @@ Here a snippet from the ARM parameters file indicating the setup of the KeyVault
     },
 
 A more detailed description of these steps were published on Github and can be found [here](https://github.com/djzeka/VSTS-AzureServiceFabric/blob/master/docs/Creating%20secure%20Azure%20Service%20Fabric%20Cluster.md).
+
+![alt tag](Images/7.png)
+
+This concluded the first step where we had a complete template to be able to generate clusters for specific environments automatically.
+
+## Connecting VSTS & Azure Service Fabric ##
+Next up was the step to add a Visual Studio Team Services project that would hold all the sources, scripts and solution assets. 24Coms had separate repositories for the back-end and front-end applications and we went ahead by combining them within the same VSTS project to get a single unit of deployment and life-cycle management.
+
+The opportunity was taken to restructure and clean up the solution to only include the necessary code base for the services. This should speed up the build time since all project in the solution will be built during CI/CD steps. 
+
+>To be able to use the solution for the latest cluster version it needs to be updated to the latest SDK. The version can be looked up in de .sfproj file under the ‘ProjectVersion’ element. Visual Studio is capable of updating the project after the latest SDK is installed. Potential build error can be fixed by updating the service fabric NuGet packages in the solution.
+
+Not all team members use Windows as their workplace operating system and we wanted to include the whole team to get familiar with Microsoft’s tooling. We opted to use Azure Dev Test labs to provide all team members with a pre-configured workspace that included Visual Studio 2015 and common tools used by the team. This step only took a brief moment because they only needed to select the ‘formulas’ they needed and 15 minutes later they were all up and running. These machines could be scheduled to turn off outside of office hours to save costs and waste of resources.
+
+The ARM template was added to the solution as well to get an integrated repository that included Infrastructure as Code. This way the full history of every topology chance and the option to revert incorrect changes would be available.
+
+![alt tag](Images/8.png)
+
+## Creating build definitions ##
+
+**Backend services:**
+
+The next task was to setup a build definition for the micro service based back-end. Luckily a template is already available in VSTS so only the configuration had to be changed. The ‘Update Service Fabric App Versions’ step update the application and service versions for all projects that have been updated. This way an automated build and deploy will only touch things that have to be updated.
+
+> To be able to filter out services that don’t have any code changes the solution projects have to be enabled for deterministic builds. This can be achieved updating the project files to include a *<Deterministic>True</Deterministic>* element in a *<PropertyGroup>* element. This makes sure the build output is binary identical so it doesn’t get picked up for an automated version update.
+
+![alt tag](Images/9.png)
+
+> Testing the build resulted in an error message. This turned out to be the result of a misconfigured build definition in the solution file. All projects need to output x64 binaries else there is a mismatch with the SDK’s assemblies which are built only for 64 bit environments.
+
+**iOS Client application:**
+Next up was setting up de CI/CD for the iOS mobile application. An extra step had to be added for a successfully automated build to manage the dependencies of the Objective-C Cacoa project (UI framework for iOS). The CacoaPod pod install command arranges the package management and initialization step.
+
+![alt tag](Images/10.png)
+
+Apple doesn’t allow builds of iOS of OSX application to happen on other platforms than OSX. For this reason, builds cannot run in hosted mode. Luckily there is a handy agent available that 24Coms used to setup a local machine to execute the builds. VSTS will orchestrate the process according to the build definition. The agent retrieves all assets needed to do the build and the output is send back for further release steps.
+
+> There is a paid alternative that can be considered called MacinCloud. This service hosts genuine Mac hardware and offer build agents as a service. More info can be found [here](https://www.macincloud.com/pricing/build-agent-plans/vso-build-agent-plan).
+
+![alt tag](Images/11.jpg)
+*figure 5: the 24coms ios app communicating with the followme back-end*
+
+**Android Application:**
+Last up was the Android version of the 24Coms mobile application. Key points here were the addition of a Gradle step which triggers the build process and .PKG creation process. Gradle needs a build definition file to know how to build. 
+
+After updating this file the builds still continued to fail. The reason for this was that the hosted build agent did not have the correct Agent version installed to support the Android project version (1.98.1). The alternative was to use the local build agent that already was setup for the iOS build. Custom build agents (local or cloud hosted) offer more flexibility in preinstalling software for builds. There are agent version for multiple platforms as can be found [here](https://github.com/Microsoft/vsts-agent).
+
+![alt tag](Images/13.png)
+![alt tag](Images/14.png)
+
+## Creating release definitions ##
+The template offered by VSTS for a service fabric release definition contains a single task that publishes an application to the cluster based on the selected publishing profile.  This publishing profile was matched with the corresponding environment the build definition was setup for. 
+
+In preparation of this step a service endpoint item was created linking the deployment to the secured cluster management endpoints using the certificate in the Azure Key Vault.
+
+![alt tag](Images/15.png)
+
+> When adding new Azure Service Fabric “Service” at VSTS make sure you add https URL to your ASF cluster followed by the port e.g. *https://qwerty.westeurope.cloudapp.azure.com:19000/* to avoid errors and confusion.
+
+![alt tag](Images/16.png)
+
+**Back-end testing & discovery of external Clients:**
+ 
+While part of the te
+am was working on iOS, Android and GPS trackers and building and pushing new app versions and backend services. We also did a live test and checked if data flow from frontends is working.
+
+We were using the dark websocket terminal tool (Chrome extension) to connect to the backend and pickup the “signals” from front end devices. The picture below shows what was captured – all 3 expected devices were successfully sending GPS data to newly provisioned test cluster.
+
+![alt tag](Images/17.png)
+*figure 6:using a socket tool to check incoming signals*
+
+With this we reached the milestone where a newly updated & provisioned system was working as expected. 
+
+**Beta testing:**
+
+24Coms was using Apple’s TestFlight for beta testing and realized they had to implement and manage multiple tools for the various platform they support. 
+![alt tag](Images/18.png)
+*Figure 5: testflight beta/test app releases, ios only*
+
+To include beta releasing as part the on-ramp to the DevOps practice feature flagging *HockeyApp* was introduced into the flow. The full migration to *HockeyApp* was out of scope for the 3-day hackfest but for 24Coms *HockeyApp* looked like a promising option and an improvement that would simplify their DevOps practice even further.
+
+![alt tag](Images/19.jpg)
+
+**Load Testing:**
+
+Load testing often is an important step in making sure a scalable system actually has the characteristics we like to see. Although not part of the core priorities for the hackfest (due to the time investments needed to set this up) we did have a discussion on a recommended approach. VSTS offers cloud based load testing ranging from a simple HTTP call that can be configured and run multiple times to recorded and coded tests that can simulates large amounts of clients and devices. During the engagement we shared some best practices for writing a code based load test that can hit the Service Fabric cluster endpoints from a large pool of virtual users. With a simple click of a button in the VSTS portal a large scale load test can be triggered and the result are instantly available online. Using Application Insight to monitor the environment under test makes a lot of sense and for Service Fabric there is guidance on how to set it up (see resources).
+
+## Conclusion ##
+Before wrapping up the event a roundtable discussion held with the 24Coms team to get feedback on what we were able to achieve and how they experienced spending their time with Microsoft. The overall feedback was really positive. 
+
+## Hackfest outcome ##
+At the end of the Hackfest 24Coms had the core DevOps practices embedded in their company DNA. Changes in their market, that lead to new insights at the level of 24Coms’s management now can be turned in to new features quicker than ever, due to the following improvements:
+
+
+
+- Code changes will lead to automatically updated and validated test, staging and eventually production environments. 
+![alt tag](Images/20.png)
+- The build steps for mobile applications are no longer isolated steps but will be part of a consistent and highly automated process.
+- Deployment management can be done centrally using a single orchestrator.
+- Updates to back-end services can be rolled out without downtime. Service Fabric handles the deployment and message/request routing.
+- At the application level there is a resilient runtime that monitors services, acts on failures automatically, often by fixing them without human intervention.
+- Resources running in the cloud are used effectively. By running multiple service in a coherent cluster each CPU payed for can be used to capacity.
+- Azure Service Fabric allows us to push, mitigate and deliver new code and bug fixes fast
+![alt tag](Images/21.jpg)
+*figure 8: pushing bug fix with the ease and speed of azure service fabric*
+
+Last learning and perhaps most important one. Just 1 day after we have finished our hack with 24Coms team they informed us about improvements they have made – they have applied learned and utilized full CI/CD/RM on their production and it looks like this:
+
+![alt tag](Images/22.png)
+Figure 9: Automated updates from VSTS to Service Fabric
+
+## Appreciation ##
+> It is exciting to see how quickly changes can be made if we tune ourselves in to the discovery and hacking mindset. Many thanks to the team for picking up the challenge, your partnership and will to drive this hackfest to a success – 24Coms, Thank you!
+
+## Resources ## 
+
+Resource Manager, KeyVault and Azure Service Fabric useful links:
+
+- [https://azure.microsoft.com/en-us/documentation/articles/resource-group-overview/](https://azure.microsoft.com/en-us/documentation/articles/resource-group-overview/)  
+- [https://azure.microsoft.com/en-us/documentation/articles/resource-manager-keyvault-parameter/](https://azure.microsoft.com/en-us/documentation/articles/resource-manager-keyvault-parameter/)
+- [https://github.com/Azure/azure-quickstart-templates/ ](https://github.com/Azure/azure-quickstart-templates/ )
+- [https://azure.microsoft.com/en-us/documentation/services/service-fabric/](https://azure.microsoft.com/en-us/documentation/services/service-fabric/)
+  
+Azure Service Fabric HOL’s and additional materials:
+
+- [https://github.com/djzeka/VSTS-AzureServiceFabric ](https://github.com/djzeka/VSTS-AzureServiceFabric )
+- [https://github.com/ChackDan/Service-Fabric#microsoft-azure-service-fabric-helper-powershell-module ](https://github.com/ChackDan/Service-Fabric#microsoft-azure-service-fabric-helper-powershell-module )
+
+HockeyApp, Application Insights:
+
+- [http://www.medic-consulting.com/2016/08/12/Application-Insights-and-Semantic-Logging-for-Service-Fabric-Microservices/](http://www.medic-consulting.com/2016/08/12/Application-Insights-and-Semantic-Logging-for-Service-Fabric-Microservices/)
+- [https://support.hockeyapp.net/kb/third-party-bug-trackers-services-and-webhooks/how-to-use-hockeyapp-with-visual-studio-team-services-vsts-or-team-foundation-server-tfs](https://support.hockeyapp.net/kb/third-party-bug-trackers-services-and-webhooks/how-to-use-hockeyapp-with-visual-studio-team-services-vsts-or-team-foundation-server-tfs)
+
+Build agents, XCode setup:
+
+- [https://github.com/Microsoft/vsts-agent/blob/master/README.md](https://github.com/Microsoft/vsts-agent/blob/master/README.md)
+- [https://www.visualstudio.com/en-us/docs/build/admin/agents/v2-osx](https://www.visualstudio.com/en-us/docs/build/admin/agents/v2-osx)
+- [https://www.visualstudio.com/en-us/docs/setup-admin/team-services/use-personal-access-tokens-to-authenticate](https://www.visualstudio.com/en-us/docs/setup-admin/team-services/use-personal-access-tokens-to-authenticate)
+- [https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios](https://www.visualstudio.com/docs/build/apps/mobile/xcode-ios)
+
+
