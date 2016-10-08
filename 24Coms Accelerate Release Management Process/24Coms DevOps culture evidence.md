@@ -118,6 +118,7 @@ Our starting point [was the Azure QuickStart templates at GitHub](https://github
 
 
 ![alt tag](Images/6.png)
+*figure 3: arm template for the service farbric  cluster*
 
 > Before deploying an ARM template, check the Core quota of the subscription. In case there are not enough cores available the error message notifying this might not be instantly visible and this could lead to confusion. 
 
@@ -142,6 +143,7 @@ Here a snippet from the ARM parameters file indicating the setup of the KeyVault
 A more detailed description of these steps were published on Github and can be found [here](https://github.com/djzeka/VSTS-AzureServiceFabric/blob/master/docs/Creating%20secure%20Azure%20Service%20Fabric%20Cluster.md).
 
 ![alt tag](Images/7.png)
+*figure 4: a secured service fabric cluster*
 
 This concluded the first step where we had a complete template to be able to generate clusters for specific environments automatically.
 
@@ -222,6 +224,7 @@ With this we reached the milestone where a newly updated & provisioned system wa
 To include beta releasing as part the on-ramp to the DevOps practice feature flagging *HockeyApp* was introduced into the flow. The full migration to *HockeyApp* was out of scope for the 3-day hackfest but for 24Coms *HockeyApp* looked like a promising option and an improvement that would simplify their DevOps practice even further.
 
 ![alt tag](Images/19.jpg)
+*figure 6: hockeyapp offering multiplatform app beta-testing and monitoring*
 
 **Load Testing:**
 
@@ -232,8 +235,6 @@ Before wrapping up the event a roundtable discussion held with the 24Coms team t
 
 ## Hackfest outcome ##
 At the end of the Hackfest 24Coms had the core DevOps practices embedded in their company DNA. Changes in their market, that lead to new insights at the level of 24Coms’s management now can be turned in to new features quicker than ever, due to the following improvements:
-
-
 
 - Code changes will lead to automatically updated and validated test, staging and eventually production environments. 
 ![alt tag](Images/20.png)
@@ -254,7 +255,7 @@ Figure 9: Automated updates from VSTS to Service Fabric
 ## Appreciation ##
 > It is exciting to see how quickly changes can be made if we tune ourselves in to the discovery and hacking mindset. Many thanks to the team for picking up the challenge, your partnership and will to drive this hackfest to a success – 24Coms, Thank you!
 
-## Resources ## 
+## Resources ##
 
 Resource Manager, KeyVault and Azure Service Fabric useful links:
 
